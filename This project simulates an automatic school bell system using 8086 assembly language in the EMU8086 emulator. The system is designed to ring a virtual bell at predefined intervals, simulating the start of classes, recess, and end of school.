@@ -1,0 +1,138 @@
+.model small
+.stack 100h
+.data
+msg_bell db &#39;BELL RING$&#39;
+newline db 13, 10, &#39;$&#39;
+msg_start_class db &#39;--- START OF CLASS BELL ---$&#39;, 13, 10, &#39;$&#39;
+msg_recess db &#39;--- RECESS BELL (BREAK TIME) ---$&#39;, 13, 10, &#39;$&#39;
+msg_end_day db &#39;--- END OF DAY BELL ---$&#39;, 13, 10, &#39;$&#39;
+msg_end_class1 db &#39;--- END OF DSA CLASS BELL ---$&#39;, 13, 10, &#39;$&#39;
+msg_end_class2 db &#39;--- END OF COAL CLASS BELL ---$&#39;, 13, 10, &#39;$&#39;
+msg_end_class3 db &#39;--- END OF OPPS CLASS BELL ---$&#39;, 13, 10, &#39;$&#39;
+msg_end_class4 db &#39;--- END OF DATABASE CLASS BELL ---$&#39;, 13, 10, &#39;$&#39;
+msg_end_class5 db &#39;--- END OF CIVICS CLASS BELL ---$&#39;, 13, 10, &#39;$&#39;
+msg_end_class6 db &#39;--- END OF SOFTWARE CLASS BELL ---$&#39;, 13, 10, &#39;$&#39;
+.code
+main:
+mov ax, @data
+
+mov ds, ax
+; ===== CLASS 1 =====
+call ShowStartClassMsg
+call RingOnce
+call Delay40
+lea dx, msg_end_class1
+call PrintMsg
+call RingOnce
+call Delay10
+; ===== CLASS 2 =====
+call ShowStartClassMsg
+call RingOnce
+call Delay40
+lea dx, msg_end_class2
+call PrintMsg
+call RingOnce
+call Delay10
+; ===== CLASS 3 =====
+call ShowStartClassMsg
+call RingOnce
+call Delay40
+lea dx, msg_end_class3
+call PrintMsg
+call RingOnce
+call Delay10
+; ===== RECESS (AFTER 3 CLASSES) =====
+lea dx, msg_recess
+call PrintMsg
+call RingTwice
+call Delay10
+; ===== CLASS 4 =====
+call ShowStartClassMsg
+call RingOnce
+call Delay40
+lea dx, msg_end_class4
+call PrintMsg
+call RingOnce
+call Delay10
+
+; ===== CLASS 5 =====
+call ShowStartClassMsg
+call RingOnce
+call Delay40
+lea dx, msg_end_class5
+call PrintMsg
+call RingOnce
+call Delay10
+; ===== CLASS 6 =====
+call ShowStartClassMsg
+call RingOnce
+call Delay40
+lea dx, msg_end_class6
+call PrintMsg
+call RingOnce
+call Delay10
+; ===== END OF DAY =====
+lea dx, msg_end_day
+call PrintMsg
+call RingThrice
+; End Program
+mov ah, 4ch
+int 21h
+; ------------------------
+; Procedures
+; ------------------------
+ShowStartClassMsg:
+lea dx, msg_start_class
+call PrintMsg
+ret
+RingOnce:
+call PrintBell
+ret
+RingTwice:
+call PrintBell
+call DelayShort
+call PrintBell
+
+ret
+RingThrice:
+call PrintBell
+call DelayShort
+call PrintBell
+call DelayShort
+call PrintBell
+ret
+PrintBell:
+lea dx, msg_bell
+call PrintMsg
+ret
+PrintMsg:
+mov ah, 09h
+int 21h
+lea dx, newline
+mov ah, 09h
+int 21h
+ret
+Delay40:
+mov cx, 4
+call DelayLoop
+ret
+Delay10:
+mov cx, 1
+call DelayLoop
+ret
+DelayShort:
+mov cx, 10
+DelayShortLoop:
+loop DelayShortLoop
+ret
+DelayLoop:
+OuterLoop:
+push cx
+mov cx, 500
+InnerLoop:
+
+loop InnerLoop
+pop cx
+loop OuterLoop
+ret
+end main
