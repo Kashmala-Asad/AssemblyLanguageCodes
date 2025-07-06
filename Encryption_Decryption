@@ -1,0 +1,93 @@
+.model small
+.stack 100h
+.data
+prompt db &quot;Enter a string: $&quot;
+encrypted_msg db 10, 13, &quot;Encrypted string: $&quot;
+decrypted_msg db 10, 13, &quot;Decrypted string: $&quot;
+success_msg db 10, 13, &quot;Encryption recovery successful!$&quot;
+input_buffer db 100, ?, 100 dup(&#39;$&#39;) ;
+encrypted_buffer db 100 dup(&#39;$&#39;)
+decrypted_buffer db 100 dup(&#39;$&#39;)
+.code
+main proc
+mov ax, @data
+mov ds, ax
+mov es, ax
+mov ah, 09h
+lea dx, prompt
+int 21h
+mov ah, 0Ah
+lea dx, input_buffer
+int 21h
+lea si, input_buffer + 2
+lea di, encrypted_buffer
+mov cl, input_buffer + 1
+mov ch, 0
+call encrypt
+mov ah, 09h
+lea dx, encrypted_msg
+int 21h
+lea dx, encrypted_buffer
+int 21h
+lea si, encrypted_buffer
+lea di, decrypted_buffer
+mov cl, input_buffer + 1
+mov ch, 0
+call decrypt
+mov ah, 09h
+lea dx, decrypted_msg
+int 21h
+lea dx, decrypted_buffer
+int 21h
+lea si, input_buffer + 2
+lea di, decrypted_buffer
+mov cl, input_buffer + 1
+
+mov ch, 0
+repe cmpsb
+jne exit
+mov ah, 09h
+lea dx, success_msg
+int 21h
+exit:
+mov ah, 4Ch
+int 21h
+main endp
+encrypt proc
+push ax
+push cx
+push si
+push di
+encrypt_loop:
+lodsb
+rol al, 3
+xor al, 55h
+ror al, 2
+stosb
+loop encrypt_loop
+pop di
+pop si
+pop cx
+pop ax
+ret
+encrypt endp
+decrypt proc
+push ax
+push cx
+push si
+push di
+decrypt_loop:
+lodsb
+rol al, 2
+xor al, 55h
+ror al, 3
+stosb
+loop decrypt_loop
+pop di
+pop si
+
+pop cx
+pop ax
+ret
+decrypt endp
+end main
