@@ -1,0 +1,144 @@
+.model small
+.stack 100h
+.data
+tree_data db 1, 2, 3, 4, 5, 6
+total_nodes equ 6
+
+msg_preorder db &#39;Preorder: $&#39;
+msg_inorder db &#39;Inorder: $&#39;
+msg_postorder db &#39;Postorder: $&#39;
+msg_newline db 13, 10, &#39;$&#39;
+msg_space db &#39; $&#39;
+.code
+start:
+mov ax, @data
+mov ds, ax
+lea dx, msg_preorder
+call display_string
+mov cl, 0
+call traverse_preorder
+call print_newline
+lea dx, msg_inorder
+call display_string
+mov cl, 0
+call traverse_inorder
+call print_newline
+lea dx, msg_postorder
+call display_string
+mov cl, 0
+call traverse_postorder
+call print_newline
+mov ah, 4ch
+int 21h
+;-------------------------
+; Preorder Traversal
+;-------------------------
+traverse_preorder proc
+cmp cl, total_nodes
+jge done_pre
+call show_node
+
+push cx
+mov ch, cl
+shl ch, 1
+inc ch
+mov cl, ch
+call traverse_preorder
+pop cx
+push cx
+mov ch, cl
+shl ch, 1
+add ch, 2
+mov cl, ch
+call traverse_preorder
+pop cx
+done_pre:
+ret
+traverse_preorder endp
+;-------------------------
+; Inorder Traversal
+;-------------------------
+traverse_inorder proc
+cmp cl, total_nodes
+jge done_in
+push cx
+mov ch, cl
+shl ch, 1
+inc ch
+mov cl, ch
+call traverse_inorder
+pop cx
+call show_node
+push cx
+mov ch, cl
+shl ch, 1
+add ch, 2
+
+mov cl, ch
+call traverse_inorder
+pop cx
+done_in:
+ret
+traverse_inorder endp
+;-------------------------
+; Postorder Traversal
+;-------------------------
+traverse_postorder proc
+cmp cl, total_nodes
+jge done_post
+push cx
+mov ch, cl
+shl ch, 1
+inc ch
+mov cl, ch
+call traverse_postorder
+pop cx
+push cx
+mov ch, cl
+shl ch, 1
+add ch, 2
+mov cl, ch
+call traverse_postorder
+pop cx
+call show_node
+done_post:
+ret
+traverse_postorder endp
+;-------------------------
+; Show Node Value
+;-------------------------
+show_node proc
+
+push ax
+push bx
+push dx
+xor bh, bh
+mov bl, cl
+mov dl, tree_data[bx]
+add dl, &#39;0&#39;
+mov ah, 02h
+int 21h
+lea dx, msg_space
+call display_string
+pop dx
+pop bx
+pop ax
+ret
+show_node endp
+;-------------------------
+; Display String
+;-------------------------
+display_string proc
+mov ah, 09h
+int 21h
+ret
+display_string endp
+;-------------------------
+; Print Newline
+;-------------------------
+print_newline proc
+lea dx, msg_newline
+call display_string
+ret
+print_newline endp
+end start
