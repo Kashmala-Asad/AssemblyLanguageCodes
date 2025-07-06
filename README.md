@@ -1,2 +1,5 @@
-# AssemblyLanguageCodes
-Programs demonstrating structured loops with user-controlled flows and interactive programs, enabling the user to enter values, process them, and display results while practicing clean register management and interrupt usage.
+Assembly Language Projects – Kashmala Asad
+
+Welcome to my Assembly Language Projects Repository  
+This collection demonstrates **practical low-level programming skills** using Assembly Language, building logic structures, data structures, and algorithmic flows, enhancing my understanding of hardware-near computation and system programming.
+
