@@ -1,0 +1,264 @@
+.model small ; Define a small memory model
+
+.stack 100h ; Allocate 256 bytes for the stack
+
+.data
+roles db 0 ; Stores role bitmask (each bit = one role)
+roleNames db &#39; Miner (0001)&#39;, 0
+db &#39; Supervisor (0010)&#39;, 0
+db &#39; Safety (0011)&#39;, 0
+db &#39; Technician (0100)&#39;, 0
+db &#39; Engineer (0101)&#39;, 0
+db &#39; Medic (0110)&#39;, 0
+db &#39; Admin (0111)&#39;, 0
+db &#39; Reserved (1000)&#39;, 0
+newline db 13, 10, &#39;$&#39; ; Carriage return + line feed (for new line)
+menuPrompt db &#39;Role Management System&#39;, 13, 10
+db &#39;1. Set Role&#39;, 13, 10
+db &#39;2. Remove Role&#39;, 13, 10
+db &#39;3. Check Role&#39;, 13, 10
+db &#39;4. Display All Roles&#39;, 13, 10
+db &#39;5. Exit&#39;, 13, 10
+db &#39;Enter your choice: $&#39;
+rolePrompt db &#39;Enter role number (1-8): $&#39;
+setSuccess db &#39;&quot; set successfully.&#39;, 13, 10, &#39;$&#39;
+removeSuccess db &#39;&quot; removed successfully.&#39;, 13, 10, &#39;$&#39;
+isAssigned db &#39;&quot; is assigned.&#39;, 13, 10, &#39;$&#39;
+isNotAssigned db &#39;&quot; is NOT assigned.&#39;, 13, 10, &#39;$&#39;
+currentMsg db &#39;Current Roles:&#39;, 13, 10, &#39;$&#39;
+
+invalidMsg db &#39;Invalid input!&#39;, 13, 10, &#39;$&#39;
+
+.code
+main proc
+mov ax, @data
+mov ds, ax
+
+; ----- Print all 8 roles at start -----
+mov cl, 0 ; Role index
+mov si, offset roleNames
+
+PrintAllRoles:
+push cx ; Save counter
+call PrintRoleName ; This prints role by index (CL)
+mov dx, offset newline
+call PrintString
+pop cx ; Restore counter
+
+inc cl
+cmp cl, 8
+jl PrintAllRoles ; Loop for all 8 roles
+
+; -------- Show menu after that --------
+menu:
+mov dx, offset newline
+call PrintString
+
+mov dx, offset menuPrompt
+call PrintString
+
+call GetChar
+sub al, &#39;0&#39;
+cmp al, 1
+jb InvalidInput
+cmp al, 5
+ja InvalidInput
+mov bl, al
+
+cmp bl, 1
+je SetRole
+cmp bl, 2
+je RemoveRole
+cmp bl, 3
+je CheckRole
+cmp bl, 4
+je DisplayRoles
+cmp bl, 5
+je Exit
+; --------------- Set Role ---------------
+SetRole:
+call GetRoleNumber ; Get role index (0–7) in BL
+mov cl, bl ; Move to CL for shifting
+mov al, 1
+
+shl al, cl ; Create mask: 1 &lt;&lt; role number
+or roles, al ; Set corresponding bit in roles
+
+call PrintQuoteRoleName ; Print role name in quotes
+mov dx, offset setSuccess
+call PrintString
+jmp menu
+
+; --------------- Remove Role ---------------
+RemoveRole:
+call GetRoleNumber
+mov cl, bl
+mov al, 1
+shl al, cl ; Create mask
+not al ; Invert mask
+and roles, al ; Clear bit using AND
+
+call PrintQuoteRoleName
+mov dx, offset removeSuccess
+call PrintString
+jmp menu
+
+; --------------- Check Role ---------------
+CheckRole:
+call GetRoleNumber
+mov cl, bl
+
+mov al, 1
+shl al, cl ; Create mask
+test roles, al ; Test bit
+jz NotAssignedCheck ; If 0, not assigned
+
+call PrintQuoteRoleName
+mov dx, offset isAssigned
+call PrintString
+jmp menu
+
+NotAssignedCheck:
+call PrintQuoteRoleName
+mov dx, offset isNotAssigned
+call PrintString
+jmp menu
+
+; --------------- Display All Roles ---------------
+DisplayRoles:
+mov dx, offset newline
+call PrintString
+mov dx, offset currentMsg
+call PrintString
+
+mov cl, 0 ; Role index = 0
+mov si, offset roleNames ; Point to role strings
+mov al, roles ; Load current role bitmask
+
+DisplayLoop:
+mov bl, al
+shr bl, cl ; Shift right by current index
+and bl, 1 ; Is this role bit set?
+jz SkipDisplay ; If 0, skip display
+
+push ax
+push cx
+call PrintRoleName ; Print role name (no quotes)
+mov dx, offset newline
+call PrintString
+pop cx
+pop ax
+
+SkipDisplay:
+inc cl ; Move to next role
+cmp cl, 8
+jl DisplayLoop
+jmp menu
+
+; --------------- Invalid Input ---------------
+InvalidInput:
+mov dx, offset invalidMsg
+call PrintString
+jmp menu
+
+; --------------- Exit Program ---------------
+Exit:
+mov ah, 4ch
+int 21h
+main endp
+
+; --------------- GetRoleNumber: Get valid role number 1–8 (returns 0–7 in BL) ---------------
+GetRoleNumber proc
+mov dx, offset newline
+call PrintString
+mov dx, offset rolePrompt
+call PrintString
+call GetChar ; Read character
+sub al, &#39;1&#39; ; Convert to 0–7
+cmp al, 0
+jb InvalidRole
+cmp al, 7
+ja InvalidRole
+mov bl, al ; Store in BL
+ret
+InvalidRole:
+mov dx, offset invalidMsg
+call PrintString
+jmp GetRoleNumber
+GetRoleNumber endp
+
+; --------------- PrintRoleName: Print role name from roleNames based on CL ---------------
+PrintRoleName proc
+mov bh, 0 ; Role counter
+mov si, offset roleNames
+FindRole:
+cmp bh, cl ; Found target role?
+je PrintIt
+SkipToNext:
+lodsb
+cmp al, 0
+jne SkipToNext ; Skip until null terminator
+inc bh
+jmp FindRole
+
+PrintIt:
+lodsb
+cmp al, 0
+je Done
+mov dl, al
+mov ah, 2
+int 21h
+jmp PrintIt
+Done:
+ret
+PrintRoleName endp
+
+; --------------- PrintQuoteRoleName: Print role name with quotes ---------------
+PrintQuoteRoleName proc
+mov bh, 0
+mov si, offset roleNames
+
+mov dl, &#39;&quot;&#39; ; Print opening quote
+mov ah, 2
+int 21h
+
+FindSel:
+cmp bh, cl
+je PrintSel
+SkipSel:
+lodsb
+cmp al, 0
+jne SkipSel
+inc bh
+jmp FindSel
+
+PrintSel:
+lodsb
+cmp al, 0
+je EndSel
+mov dl, al
+mov ah, 2
+
+int 21h
+jmp PrintSel
+
+EndSel:
+mov dl, &#39;&quot;&#39; ; Print closing quote
+mov ah, 2
+int 21h
+ret
+PrintQuoteRoleName endp
+
+; --------------- GetChar: Reads one character into AL ---------------
+GetChar proc
+mov ah, 1
+int 21h
+ret
+GetChar endp
+
+; --------------- PrintString: Print string pointed by DX ---------------
+PrintString proc
+mov ah, 9
+int 21h
+ret
+PrintString endp
